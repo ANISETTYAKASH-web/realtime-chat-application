@@ -1,8 +1,7 @@
-const { JsonWebTokenError } = require("jsonwebtoken");
 const pool = require("../config/db");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const { use } = require("react");
+const jwtFunctions = require("../utils/jwt");
 require("dotenv").config();
 const jwt_key = process.env.JWT_KEY;
 async function createUser(req, res) {
@@ -16,25 +15,17 @@ async function createUser(req, res) {
     const values = [user_name, first_name, last_name, email, hash];
     const result = await client.query(query, values);
 
-    const token = jwt.sign(
-      {
-        user: { user_id: result.user_id, email: result.email },
-      },
-      jwt_key,
-      { expiresIn: "1h" }
-    );
-    res
-      .status(201)
-      .json(
-        { message: "user created succesfuly" },
-        { newuser: result.rows[0] },
-        token
-      );
+    const token = jwtFunctions.genToken(result.rows[0], jwt_key);
+    res.status(201).json({
+      message: "user created succesfuly",
+      newuser: result.rows[0],
+      token,
+    });
   } catch (err) {
     console.error(err);
     res
       .status(400)
-      .json({ message: "user creatiopn failed" }, { error: err.message });
+      .json({ message: "user creatiopn failed", error: err.message });
   } finally {
     client.release();
   }
@@ -44,7 +35,7 @@ async function loginUser(req, res) {
   const { user_name, email, password } = req.body;
   const client = await pool.connect();
   try {
-    const user = findUserExists(email);
+    const user = await findUserExists(email);
     if (user === undefined) {
       return res
         .status(404)
@@ -54,28 +45,21 @@ async function loginUser(req, res) {
     if (!result) {
       return res.status(401).json({ message: "wrong password" });
     }
-    const token = jwt.sign(
-      { user: { user_id: user.user_id, email: user.email } },
-      jwt_key,
-      { expiresIn: "1h" }
-    );
+    const token = jwtFunctions.genToken(result.rows[0], jwt_key);
 
-    res.status(200).json(
-      { message: "login succesful" },
-      {
-        user: {
-          user_id: user.user_id,
-          email: user.email,
-          user_name: user.user_name,
-        },
+    res.status(200).json({
+      message: "login succesful",
+
+      user: {
+        user_id: user.user_id,
+        email: user.email,
+        user_name: user.user_name,
       },
-      token
-    );
+      token,
+    });
   } catch (err) {
     console.error(err);
-    res
-      .status(401)
-      .json({ message: "login unsuccesfull" }, { err: err.message });
+    res.status(401).json({ message: "login unsuccesfull", err: err.message });
   } finally {
     client.release();
   }
@@ -92,3 +76,7 @@ async function findUserExists(email) {
     client.release();
   }
 }
+module.exports = {
+  createUser,
+  loginUser,
+};
