@@ -1,0 +1,33 @@
+
+CREATE TABLE users
+(
+  user_id uuid PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
+  user_name VARCHAR(50) NOT NULL,
+  first_name VARCHAR(50),
+  last_name VARCHAR(50),
+  email VARCHAR(100) NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE chat_rooms
+(
+chat_room_id uuid PRIMARY KEY  NOT NULL DEFAULT gen_random_uuid(),
+name VARCHAR(50) NOT NULL,
+user_id uuid ,
+description VARCHAR(200) NOT NULL,
+created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+CONSTRAINT fk_users FOREIGN KEY(user_id) REFERENCES users(user_id)
+);
+CREATE TABLE messages
+(
+  message_id uuid PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid ,
+  chat_room_id uuid,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_users FOREIGN KEY(user_id) REFERENCES users ON DELETE CASCADE,
+  CONSTRAINT fk_chat_rooms FOREIGN KEY(chat_room_id) REFERENCES chat_rooms on DELETE CASCADE
+);
+
